@@ -1,0 +1,36 @@
+# YOLO weights (download separately - see README)
+*.pt
+*.pth
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output
+output/
+*_ko.pdf
+*_terms.tsv
+
+# Models directory (download separately)
+models/

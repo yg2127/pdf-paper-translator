@@ -1,0 +1,29 @@
+# 논문 번역기 파이프라인 의존성
+
+# PDF 처리
+pdf2image>=1.16.0
+PyMuPDF>=1.23.0  # fitz
+
+# 이미지 처리
+Pillow>=10.0.0
+
+# 객체 감지 (YOLO)
+ultralytics>=8.0.0
+
+# OCR
+easyocr>=1.7.0
+
+# 번역 모델
+transformers>=4.35.0
+torch>=2.0.0
+sentencepiece>=0.1.99
+peft>=0.7.0 # LoRA 어댑터 로딩 및 사용
+bitsandbytes>=0.41.0 # 4bit 양자화 모델 로딩
+accelerate>=0.23.0 # 모델 로딩 가속
+
+# PDF 생성
+reportlab>=4.0.0
+
+# 유틸리티
+numpy>=1.24.0
+tqdm>=4.65.0

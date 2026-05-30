@@ -1,0 +1,453 @@
+영어	한국어	분야
+Abstract	초록	공통
+Acknowledgement	감사의 글	공통
+Algorithm	알고리즘	공통
+Analysis	분석	공통
+Appendix	부록	공통
+Approach	접근법	공통
+Assumption	가정	공통
+Baseline	베이스라인	공통
+Benchmark	벤치마크	공통
+Bibliography	참고문헌	공통
+Citation	인용	공통
+Conclusion	결론	공통
+Contribution	기여	공통
+Correlation	상관관계	공통
+Dataset	데이터셋	공통
+Discussion	논의	공통
+Evaluation	평가	공통
+Experiment	실험	공통
+Figure	그림	공통
+Framework	프레임워크	공통
+Hypothesis	가설	공통
+Implementation	구현	공통
+Introduction	서론	공통
+Limitation	한계	공통
+Literature Review	문헌 검토	공통
+Methodology	방법론	공통
+Metric	지표	공통
+Motivation	동기	공통
+Objective	목적	공통
+Observation	관찰	공통
+Overview	개요	공통
+Parameter	파라미터	공통
+Performance	성능	공통
+Pipeline	파이프라인	공통
+Preliminary	예비	공통
+Procedure	절차	공통
+Proposition	명제	공통
+Protocol	프로토콜	공통
+Reference	참조	공통
+Related Work	관련 연구	공통
+Result	결과	공통
+Section	섹션	공통
+Setting	설정	공통
+Significance	유의성	공통
+State-of-the-art	최신 기술	공통
+Statistical	통계적	공통
+Summary	요약	공통
+Survey	조사	공통
+Table	표	공통
+Theorem	정리	공통
+Validation	검증	공통
+Variable	변수	공통
+Activation Function	활성화 함수	딥러닝
+Adam	아담	딥러닝
+Attention	어텐션	딥러닝
+Autoencoder	오토인코더	딥러닝
+Backpropagation	역전파	딥러닝
+Batch Normalization	배치 정규화	딥러닝
+Batch Size	배치 크기	딥러닝
+BERT	BERT	딥러닝
+Bias	편향	딥러닝
+Bidirectional	양방향	딥러닝
+Classification	분류	딥러닝
+Clustering	클러스터링	딥러닝
+CNN	CNN	딥러닝
+Convolution	합성곱	딥러닝
+Convolutional Neural Network	합성곱 신경망	딥러닝
+Cross-entropy	교차 엔트로피	딥러닝
+Cross-validation	교차 검증	딥러닝
+Decoder	디코더	딥러닝
+Deep Learning	딥러닝	딥러닝
+Dense Layer	완전 연결층	딥러닝
+Discriminator	판별자	딥러닝
+Dropout	드롭아웃	딥러닝
+Embedding	임베딩	딥러닝
+Encoder	인코더	딥러닝
+Epoch	에포크	딥러닝
+Feature	특징	딥러닝
+Feature Extraction	특징 추출	딥러닝
+Feature Map	특징 맵	딥러닝
+Feedforward	순방향	딥러닝
+Fine-tuning	파인튜닝	딥러닝
+Fully Connected	완전 연결	딥러닝
+GAN	GAN	딥러닝
+Generative Adversarial Network	생성적 적대 신경망	딥러닝
+Generator	생성자	딥러닝
+Gradient	기울기	딥러닝
+Gradient Descent	경사 하강법	딥러닝
+GPT	GPT	딥러닝
+GRU	GRU	딥러닝
+Hidden Layer	은닉층	딥러닝
+Hyperparameter	하이퍼파라미터	딥러닝
+Inference	추론	딥러닝
+Input Layer	입력층	딥러닝
+Kernel	커널	딥러닝
+Latent Space	잠재 공간	딥러닝
+Layer	층	딥러닝
+Learning Rate	학습률	딥러닝
+Linear	선형	딥러닝
+Loss Function	손실 함수	딥러닝
+LSTM	LSTM	딥러닝
+Machine Learning	머신러닝	딥러닝
+Max Pooling	최대 풀링	딥러닝
+Mean Squared Error	평균 제곱 오차	딥러닝
+Mini-batch	미니배치	딥러닝
+Model	모델	딥러닝
+Multi-head Attention	다중 헤드 어텐션	딥러닝
+Neural Network	신경망	딥러닝
+Neuron	뉴런	딥러닝
+Nonlinear	비선형	딥러닝
+Normalization	정규화	딥러닝
+Optimizer	옵티마이저	딥러닝
+Output Layer	출력층	딥러닝
+Overfitting	과적합	딥러닝
+Padding	패딩	딥러닝
+Perceptron	퍼셉트론	딥러닝
+Pooling	풀링	딥러닝
+Pre-training	사전학습	딥러닝
+Prediction	예측	딥러닝
+Recurrent Neural Network	순환 신경망	딥러닝
+Regularization	정규화	딥러닝
+Reinforcement Learning	강화학습	딥러닝
+ReLU	ReLU	딥러닝
+Representation Learning	표현 학습	딥러닝
+ResNet	ResNet	딥러닝
+RNN	RNN	딥러닝
+Self-attention	셀프 어텐션	딥러닝
+Semantic	의미적	딥러닝
+Sequence-to-sequence	시퀀스 투 시퀀스	딥러닝
+SGD	SGD	딥러닝
+Sigmoid	시그모이드	딥러닝
+Softmax	소프트맥스	딥러닝
+Stride	스트라이드	딥러닝
+Supervised Learning	지도 학습	딥러닝
+Tensor	텐서	딥러닝
+Token	토큰	딥러닝
+Tokenization	토큰화	딥러닝
+Training	학습	딥러닝
+Transfer Learning	전이 학습	딥러닝
+Transformer	트랜스포머	딥러닝
+Underfitting	과소적합	딥러닝
+Unsupervised Learning	비지도 학습	딥러닝
+Vanishing Gradient	기울기 소실	딥러닝
+VAE	VAE	딥러닝
+Variational Autoencoder	변분 오토인코더	딥러닝
+Vector	벡터	딥러닝
+VGG	VGG	딥러닝
+Weight	가중치	딥러닝
+Word Embedding	단어 임베딩	딥러닝
+Accuracy	정확도	통계/평가
+ANOVA	분산분석	통계/평가
+AUC	AUC	통계/평가
+Confidence Interval	신뢰 구간	통계/평가
+F1 Score	F1 점수	통계/평가
+False Negative	거짓 음성	통계/평가
+False Positive	거짓 양성	통계/평가
+Ground Truth	정답	통계/평가
+IoU	IoU	통계/평가
+mAP	mAP	통계/평가
+Mean	평균	통계/평가
+Median	중앙값	통계/평가
+p-value	p값	통계/평가
+Precision	정밀도	통계/평가
+Probability	확률	통계/평가
+Recall	재현율	통계/평가
+Regression	회귀	통계/평가
+ROC Curve	ROC 곡선	통계/평가
+RMSE	RMSE	통계/평가
+Sensitivity	민감도	통계/평가
+Specificity	특이도	통계/평가
+Standard Deviation	표준편차	통계/평가
+True Negative	참 음성	통계/평가
+True Positive	참 양성	통계/평가
+Variance	분산	통계/평가
+API	API	컴퓨터공학
+Application	애플리케이션	컴퓨터공학
+Architecture	아키텍처	컴퓨터공학
+Array	배열	컴퓨터공학
+Binary	이진	컴퓨터공학
+Boolean	불리언	컴퓨터공학
+Buffer	버퍼	컴퓨터공학
+Cache	캐시	컴퓨터공학
+Callback	콜백	컴퓨터공학
+Class	클래스	컴퓨터공학
+Client	클라이언트	컴퓨터공학
+Cloud	클라우드	컴퓨터공학
+Compiler	컴파일러	컴퓨터공학
+Complexity	복잡도	컴퓨터공학
+Concurrency	동시성	컴퓨터공학
+CPU	CPU	컴퓨터공학
+Database	데이터베이스	컴퓨터공학
+Debugging	디버깅	컴퓨터공학
+Deployment	배포	컴퓨터공학
+Distributed	분산	컴퓨터공학
+Docker	도커	컴퓨터공학
+Edge Computing	엣지 컴퓨팅	컴퓨터공학
+Encryption	암호화	컴퓨터공학
+Execution	실행	컴퓨터공학
+Function	함수	컴퓨터공학
+GPU	GPU	컴퓨터공학
+Graph	그래프	컴퓨터공학
+Hashing	해싱	컴퓨터공학
+Heap	힙	컴퓨터공학
+HTTP	HTTP	컴퓨터공학
+Instance	인스턴스	컴퓨터공학
+Interface	인터페이스	컴퓨터공학
+Iteration	반복	컴퓨터공학
+JSON	JSON	컴퓨터공학
+Kubernetes	쿠버네티스	컴퓨터공학
+Latency	지연 시간	컴퓨터공학
+Library	라이브러리	컴퓨터공학
+Linux	리눅스	컴퓨터공학
+Load Balancing	로드 밸런싱	컴퓨터공학
+Memory	메모리	컴퓨터공학
+Microservice	마이크로서비스	컴퓨터공학
+Module	모듈	컴퓨터공학
+Multi-threading	멀티스레딩	컴퓨터공학
+Node	노드	컴퓨터공학
+Object	객체	컴퓨터공학
+Operating System	운영체제	컴퓨터공학
+Optimization	최적화	컴퓨터공학
+Parallel	병렬	컴퓨터공학
+Parser	파서	컴퓨터공학
+Pointer	포인터	컴퓨터공학
+Process	프로세스	컴퓨터공학
+Query	쿼리	컴퓨터공학
+Queue	큐	컴퓨터공학
+Recursion	재귀	컴퓨터공학
+Repository	저장소	컴퓨터공학
+REST	REST	컴퓨터공학
+Runtime	런타임	컴퓨터공학
+Scalability	확장성	컴퓨터공학
+Scheduler	스케줄러	컴퓨터공학
+Script	스크립트	컴퓨터공학
+SDK	SDK	컴퓨터공학
+Server	서버	컴퓨터공학
+Shell	셸	컴퓨터공학
+Socket	소켓	컴퓨터공학
+Software	소프트웨어	컴퓨터공학
+SQL	SQL	컴퓨터공학
+Stack	스택	컴퓨터공학
+Storage	스토리지	컴퓨터공학
+Syntax	구문	컴퓨터공학
+Thread	스레드	컴퓨터공학
+Throughput	처리량	컴퓨터공학
+TPU	TPU	컴퓨터공학
+Tree	트리	컴퓨터공학
+Unit Test	단위 테스트	컴퓨터공학
+Virtualization	가상화	컴퓨터공학
+Annotation	어노테이션	컴퓨터비전
+Augmentation	증강	컴퓨터비전
+Bounding Box	바운딩 박스	컴퓨터비전
+COCO	COCO	컴퓨터비전
+Detection	감지	컴퓨터비전
+Edge Detection	엣지 검출	컴퓨터비전
+HOG	HOG	컴퓨터비전
+Image Classification	이미지 분류	컴퓨터비전
+Image Segmentation	이미지 분할	컴퓨터비전
+ImageNet	ImageNet	컴퓨터비전
+Instance Segmentation	인스턴스 분할	컴퓨터비전
+Keypoint	키포인트	컴퓨터비전
+Labeling	라벨링	컴퓨터비전
+Mask	마스크	컴퓨터비전
+NMS	NMS	컴퓨터비전
+Object Detection	객체 감지	컴퓨터비전
+OCR	OCR	컴퓨터비전
+Panoptic Segmentation	파놉틱 분할	컴퓨터비전
+Pixel	픽셀	컴퓨터비전
+Resolution	해상도	컴퓨터비전
+ROI	ROI	컴퓨터비전
+Scale	스케일	컴퓨터비전
+Semantic Segmentation	의미론적 분할	컴퓨터비전
+SIFT	SIFT	컴퓨터비전
+YOLO	YOLO	컴퓨터비전
+Corpus	말뭉치	자연어처리
+Dependency Parsing	의존 구문 분석	자연어처리
+Entity	개체	자연어처리
+Language Model	언어 모델	자연어처리
+Lemmatization	표제어 추출	자연어처리
+Machine Translation	기계 번역	자연어처리
+Morphological Analysis	형태소 분석	자연어처리
+Named Entity Recognition	개체명 인식	자연어처리
+NER	NER	자연어처리
+NLG	NLG	자연어처리
+NLP	NLP	자연어처리
+NLU	NLU	자연어처리
+Part-of-Speech	품사	자연어처리
+POS Tagging	품사 태깅	자연어처리
+Question Answering	질의응답	자연어처리
+Sentiment Analysis	감성 분석	자연어처리
+Seq2Seq	Seq2Seq	자연어처리
+Stemming	어간 추출	자연어처리
+Stopword	불용어	자연어처리
+Summarization	요약	자연어처리
+Text Classification	텍스트 분류	자연어처리
+Text Mining	텍스트 마이닝	자연어처리
+TF-IDF	TF-IDF	자연어처리
+Vocabulary	어휘	자연어처리
+Word2Vec	Word2Vec	자연어처리
+Action	행동	강화학습
+Agent	에이전트	강화학습
+Bellman Equation	벨만 방정식	강화학습
+DQN	DQN	강화학습
+Environment	환경	강화학습
+Episode	에피소드	강화학습
+Exploration	탐험	강화학습
+Exploitation	활용	강화학습
+Markov Decision Process	마르코프 결정 과정	강화학습
+MDP	MDP	강화학습
+Policy	정책	강화학습
+Policy Gradient	정책 경사	강화학습
+PPO	PPO	강화학습
+Q-Learning	Q러닝	강화학습
+Q-value	Q값	강화학습
+Replay Buffer	리플레이 버퍼	강화학습
+Reward	보상	강화학습
+State	상태	강화학습
+Value Function	가치 함수	강화학습
+Absorption	흡수	물리/화학
+Atom	원자	물리/화학
+Bond	결합	물리/화학
+Catalyst	촉매	물리/화학
+Concentration	농도	물리/화학
+Conductivity	전도성	물리/화학
+Crystal	결정	물리/화학
+Density	밀도	물리/화학
+Diffusion	확산	물리/화학
+Electric Field	전기장	물리/화학
+Electron	전자	물리/화학
+Element	원소	물리/화학
+Energy	에너지	물리/화학
+Entropy	엔트로피	물리/화학
+Equilibrium	평형	물리/화학
+Force	힘	물리/화학
+Frequency	주파수	물리/화학
+Gravity	중력	물리/화학
+Ion	이온	물리/화학
+Kinetic Energy	운동 에너지	물리/화학
+Magnetic Field	자기장	물리/화학
+Mass	질량	물리/화학
+Molecule	분자	물리/화학
+Momentum	운동량	물리/화학
+Neutron	중성자	물리/화학
+Nucleus	핵	물리/화학
+Oxidation	산화	물리/화학
+Particle	입자	물리/화학
+Photon	광자	물리/화학
+Potential Energy	위치 에너지	물리/화학
+Pressure	압력	물리/화학
+Proton	양성자	물리/화학
+Quantum	양자	물리/화학
+Radiation	방사선	물리/화학
+Reaction	반응	물리/화학
+Reduction	환원	물리/화학
+Semiconductor	반도체	물리/화학
+Solution	용액	물리/화학
+Spectrum	스펙트럼	물리/화학
+Temperature	온도	물리/화학
+Thermodynamics	열역학	물리/화학
+Velocity	속도	물리/화학
+Viscosity	점성	물리/화학
+Wavelength	파장	물리/화학
+Antibody	항체	생명과학
+Antigen	항원	생명과학
+Apoptosis	세포자멸사	생명과학
+Bacteria	세균	생명과학
+Biomarker	바이오마커	생명과학
+Cell	세포	생명과학
+Chromosome	염색체	생명과학
+Clinical Trial	임상시험	생명과학
+DNA	DNA	생명과학
+Enzyme	효소	생명과학
+Expression	발현	생명과학
+Gene	유전자	생명과학
+Genome	게놈	생명과학
+Genotype	유전자형	생명과학
+Immunotherapy	면역치료	생명과학
+In vitro	시험관 내	생명과학
+In vivo	생체 내	생명과학
+Metabolism	대사	생명과학
+Microbiome	마이크로바이옴	생명과학
+Mutation	돌연변이	생명과학
+Pathogen	병원체	생명과학
+PCR	PCR	생명과학
+Phenotype	표현형	생명과학
+Placebo	위약	생명과학
+Protein	단백질	생명과학
+RNA	RNA	생명과학
+Sequencing	시퀀싱	생명과학
+Stem Cell	줄기세포	생명과학
+Transcription	전사	생명과학
+Translation	번역	생명과학
+Vaccine	백신	생명과학
+Virus	바이러스	생명과학
+Calculus	미적분학	수학
+Convergence	수렴	수학
+Derivative	도함수	수학
+Determinant	행렬식	수학
+Differential Equation	미분방정식	수학
+Dimension	차원	수학
+Divergence	발산	수학
+Eigenvalue	고유값	수학
+Eigenvector	고유벡터	수학
+Equation	방정식	수학
+Exponential	지수	수학
+Fourier Transform	푸리에 변환	수학
+Gradient	그래디언트	수학
+Hessian	헤시안	수학
+Infinity	무한대	수학
+Integral	적분	수학
+Jacobian	야코비안	수학
+Laplacian	라플라시안	수학
+Limit	극한	수학
+Linear Algebra	선형대수	수학
+Logarithm	로그	수학
+Matrix	행렬	수학
+Norm	노름	수학
+Orthogonal	직교	수학
+Partial Derivative	편미분	수학
+Polynomial	다항식	수학
+Probability Distribution	확률 분포	수학
+Projection	투영	수학
+Scalar	스칼라	수학
+Singular Value	특이값	수학
+SVD	SVD	수학
+Transpose	전치	수학
+Amplitude	진폭	전기/전자
+Analog	아날로그	전기/전자
+Antenna	안테나	전기/전자
+Bandwidth	대역폭	전기/전자
+Capacitor	커패시터	전기/전자
+Circuit	회로	전기/전자
+Current	전류	전기/전자
+Digital	디지털	전기/전자
+Diode	다이오드	전기/전자
+Feedback	피드백	전기/전자
+Filter	필터	전기/전자
+Frequency Response	주파수 응답	전기/전자
+Impedance	임피던스	전기/전자
+Inductor	인덕터	전기/전자
+Modulation	변조	전기/전자
+Noise	노이즈	전기/전자
+Oscillator	발진기	전기/전자
+Power	전력	전기/전자
+Resistance	저항	전기/전자
+Resistor	저항기	전기/전자
+Signal	신호	전기/전자
+SNR	SNR	전기/전자
+Transistor	트랜지스터	전기/전자
+Voltage	전압	전기/전자
+Waveform	파형	전기/전자
+Wireless	무선	전기/전자
