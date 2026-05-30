@@ -45,6 +45,7 @@ pip install -r requirements.txt
 ### 2. 필수 리소스 준비
 
 #### YOLO 모델
+
 ```bash
 mkdir -p models
 # YOLOv11 논문 객체 감지 모델 다운로드
@@ -52,6 +53,7 @@ mkdir -p models
 ```
 
 #### 한글 폰트
+
 ```bash
 mkdir -p fonts
 # NanumGothic.ttf 다운로드 및 배치
@@ -115,14 +117,17 @@ trans_pipline_1208/
 ## 주요 모듈 설명
 
 ### 1. PDF Converter (`pdf_converter.py`)
+
 - PDF를 고해상도 이미지로 변환
 - 기본 DPI: 300
 
 ### 2. Text Extractor (`text_extractor.py`)
+
 - PyMuPDF를 사용한 텍스트 및 바운딩 박스 추출
 - 페이지별 텍스트 블록 정보 제공
 
 ### 3. YOLO Detector (`yolo_detector.py`)
+
 - YOLOv11 기반 객체 감지
 - 감지 클래스:
   - `figure`: 그림
@@ -133,9 +138,11 @@ trans_pipline_1208/
   - `header`, `footer`, `page_number`
 
 ### 4. Term Extractor (`term_extractor.py`)
+
 FTE(Figure/Table/Equation) 및 Title에서 학술 용어 자동 추출
 
 **추출 규칙:**
+
 - 대문자 약어 (BERT, CNN, GPT)
 - 그리스 문자 (α, β, γ)
 - 숫자 포함 단어 (F1, ResNet50)
@@ -144,11 +151,14 @@ FTE(Figure/Table/Equation) 및 Title에서 학술 용어 자동 추출
 - Figure/Table/Equation 참조
 
 **제외 규칙:**
+
 - 일반 영단어 (the, is, have 등)
 - 소문자만 있는 단어
 
 ### 5. Translator (`translator.py`)
+
 **지원 모델:**
+
 - **13B 커스텀 모델** (기본) - 파인튜닝된 13B 번역 모델
   - ChatML 프롬프트 형식
   - 4-bit 양자화 지원
@@ -156,16 +166,19 @@ FTE(Figure/Table/Equation) 및 Title에서 학술 용어 자동 추출
 - **Helsinki-NLP/opus-mt-en-ko** (백업) - MarianMT 모델
 
 **주요 기능:**
+
 - 학술 용어 보호 기능
 - 수식, 참조 자동 보호
 - 배치 번역 지원 (MarianMT)
 - 용어 볼드체 처리 옵션
 
 ### 6. OCR Processor (`ocr_processor.py`)
+
 - EasyOCR 기반 텍스트 인식
 - 다국어 지원
 
 ### 7. PDF Generator (`pdf_generator.py`)
+
 - ReportLab 기반 한국어 PDF 생성
 - 원본 레이아웃 유지
 - 한글 폰트 지원
@@ -186,9 +199,9 @@ DEFAULT_CONFIG = {
     "ocr_languages": ["en"],
     "ocr_gpu": True,
 
-    # 번역
-    "translation_model": "/home/yugeon/trained_model/13B_merged",  # 13B 모델 (기본)
-    # "translation_model": "Helsinki-NLP/opus-mt-en-ko",  # MarianMT (백업)
+    # 번역 (PAPER_TRANS_MODEL_DIR 환경변수로 오버라이드)
+    "translation_model": os.getenv("PAPER_TRANS_MODEL_DIR", "Helsinki-NLP/opus-mt-en-ko"),
+    # 예) export PAPER_TRANS_MODEL_DIR=/path/to/13B_merged
     "translation_max_length": 512,
     "translation_batch_size": 8,
     "translation_use_4bit": True,       # 4-bit 양자화 (13B 모델용)
@@ -212,6 +225,7 @@ DEFAULT_CONFIG = {
 ## 용어 추출 예시
 
 입력 텍스트:
+
 ```
 BERT achieves 0.95 F1-score on the dataset
 ResNet50 vs VGG16 comparison
@@ -220,6 +234,7 @@ Attention Is All You Need: Transformer Architecture
 ```
 
 추출된 용어:
+
 ```
 ✓ 유지 | BERT          | figure    | 대문자 약어
 ✓ 유지 | F1-score      | figure    | 하이픈 기술용어
@@ -238,10 +253,12 @@ Attention Is All You Need: Transformer Architecture
 ## 출력 결과
 
 ### 1. 번역된 PDF
+
 - 파일명: `{원본파일명}_ko.pdf`
 - 위치: `output/` 디렉토리
 
 ### 2. 추출된 용어 사전
+
 - 파일명: `{원본파일명}_terms.tsv`
 - 형식: TSV (탭 구분)
 - 컬럼:
@@ -253,6 +270,7 @@ Attention Is All You Need: Transformer Architecture
   - 이유
 
 예시:
+
 ```
 용어	출처	페이지	빈도	유지여부	이유
 BERT	figure	1	5	O	대문자 약어
@@ -277,26 +295,38 @@ ResNet50	table	2	3	O	모델명/버전
 현재 파이프라인은 파인튜닝된 13B 모델을 기본으로 사용합니다.
 
 **1. 모델 병합 (처음 한 번만 실행)**
+
 ```bash
-# LoRA adapter와 베이스 모델을 병합
-python3 /home/yugeon/merge_and_save.py
+# LoRA adapter와 베이스 모델을 병합 (별도 스크립트)
+python3 merge_and_save.py
 ```
 
 **2. 파이프라인 실행**
+
 ```bash
-# config.py에 이미 13B 모델 경로가 설정되어 있음
+# 13B 병합 모델 경로를 환경변수로 지정
+export PAPER_TRANS_MODEL_DIR=/path/to/13B_merged
 python main.py input.pdf
 ```
 
 ### 다른 모델로 변경
 
-**MarianMT 모델로 변경:**
-```python
-# config.py에서
-"translation_model": "Helsinki-NLP/opus-mt-en-ko",
+**환경변수 미설정 시 기본값(MarianMT) 사용:**
+
+```bash
+# 환경변수 없으면 Helsinki-NLP/opus-mt-en-ko로 fallback
+python main.py input.pdf
+```
+
+**다른 HuggingFace 모델 사용:**
+
+```bash
+export PAPER_TRANS_MODEL_DIR=facebook/nllb-200-distilled-600M
+python main.py input.pdf
 ```
 
 **다른 커스텀 모델 사용:**
+
 ```python
 # config.py에서
 "translation_model": "/path/to/your/model",
@@ -305,6 +335,7 @@ python main.py input.pdf
 ```
 
 **코드에서 직접 설정:**
+
 ```python
 from modules.translator import Translator
 
@@ -321,6 +352,7 @@ translator = Translator(
 ## 의존성
 
 주요 라이브러리:
+
 - `pdf2image`: PDF → 이미지 변환
 - `PyMuPDF`: 텍스트 추출
 - `Pillow`: 이미지 처리
@@ -337,6 +369,7 @@ translator = Translator(
 ## 성능 최적화
 
 ### GPU 사용
+
 ```python
 config = {
     "ocr_gpu": True,  # OCR GPU 가속
@@ -345,6 +378,7 @@ config = {
 ```
 
 ### 배치 처리
+
 ```python
 config = {
     "translation_batch_size": 16,  # 배치 크기 증가 (GPU 메모리에 따라 조정)
@@ -352,6 +386,7 @@ config = {
 ```
 
 ### 양자화 모델
+
 ```python
 # 4-bit 양자화 모델 사용 (메모리 절약)
 # requirements.txt에 이미 포함:
