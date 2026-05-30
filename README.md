@@ -1,6 +1,12 @@
 # 논문 번역기 파이프라인 (Paper Translator Pipeline)
 
-학술 논문 PDF를 한국어로 자동 번역하는 AI 기반 파이프라인입니다.
+원본 레이아웃을 보존하며 영문 학술 논문 PDF를 한국어로 자동 번역하는 AI 파이프라인입니다.
+
+- **DocLayNet으로 파인튜닝한 YOLOv11**으로 그림/표/수식/캡션 영역 감지
+- **PyMuPDF** 텍스트 추출 + 커스텀 point↔pixel 좌표 변환
+- **Helsinki-NLP en-ko** 모델로 원본 PDF 레이아웃을 유지한 채 번역
+
+> 세종대학교 인공지능학과 재학 중 진행한 개인 프로젝트입니다 (2025).
 
 ## 번역 예시
 
@@ -418,8 +424,15 @@ MIT License
 
 ## 작성자
 
-- 작성일: 2024-12-08
-- 프로젝트명: trans_pipline_1208
+**유건 (Yu Geon)** — 세종대학교 인공지능학과 학부생 (2023.03 – 2027.02 예정)
+
+연구 관심사: Multimodal Learning · 3D Vision · Driver Behavior Understanding under Domain Shift
+
+- 🐙 GitHub — [@yg2127](https://github.com/yg2127)
+- 📝 Tech Blog — [yg2127.github.io](https://yg2127.github.io)
+- 📧 Email — gyu32386@gmail.com
+
+작성일: 2024-12-08
 
 ## 참고
 
