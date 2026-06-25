@@ -27,6 +27,11 @@ except ImportError:
     torch = None
 
 
+# Tower 모델의 학습 데이터(AI-Hub 뉴스·정부 문서)에서 새어 나오는 환각 표현.
+# 번역 결과에 이 단어가 섞이면 원문이 오염된 것으로 보고 영어 원문을 그대로 둔다.
+_HALLUCINATION_MARKERS = ["20년", "장학", "공단", "신문", "안내", "일시", "선정", "전문위원"]
+
+
 class Translator:
     """영어-한국어 번역기"""
     
@@ -141,13 +146,22 @@ class Translator:
 
         print(f"모델 로드 중: {self.model_name}")
         if self.device == 'cuda':
-            # 8-bit 양자화로 로드 (VRAM 절약, CPU offload 활성화)
-            print("8-bit 양자화 사용 (CPU offload 활성화)")
-            bnb_config = BitsAndBytesConfig(
-                load_in_8bit=True,
-                llm_int8_threshold=6.0,
-                llm_int8_enable_fp32_cpu_offload=True,  # CPU offload 활성화
-            )
+            # use_4bit이면 4-bit(nf4, 학습 시 QLoRA와 동일), 아니면 8-bit
+            if self.use_4bit:
+                print("4-bit 양자화 사용 (nf4)")
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.bfloat16,
+                    bnb_4bit_use_double_quant=True,
+                )
+            else:
+                print("8-bit 양자화 사용 (CPU offload 활성화)")
+                bnb_config = BitsAndBytesConfig(
+                    load_in_8bit=True,
+                    llm_int8_threshold=6.0,
+                    llm_int8_enable_fp32_cpu_offload=True,  # CPU offload 활성화
+                )
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_name,
                 quantization_config=bnb_config,
@@ -267,9 +281,8 @@ class Translator:
         if len(translated) > len(text) * 3:
             return text
 
-        # 2. 관련 없는 키워드 감지 (뉴스, 연도, 일반적인 환각 패턴)
-        hallucination_keywords = ['20년', '장학', '공단', '신문', '안내', '일시', '선정', '전문위원']
-        for keyword in hallucination_keywords:
+        # 2. 환각 마커가 섞이면 원문 유지
+        for keyword in _HALLUCINATION_MARKERS:
             if keyword in translated:
                 return text
 
@@ -400,11 +413,6 @@ class Translator:
             text = text.replace(match.group(0), placeholder, 1)
 
         return text, placeholders
-
-    def _split_protected_segments(self, text: str) -> list:
-        # 더 이상 사용하지 않지만 호환성 유지
-        return [{"text": text, "protected": False}]
-    
     def _restore_terminology(self, text: str, placeholders: dict) -> str:
         """
         플레이스홀더를 원래 용어로 복원 (볼드체 옵션 적용)

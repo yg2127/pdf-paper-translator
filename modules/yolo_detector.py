@@ -121,32 +121,6 @@ class YOLODetector:
         
         return all_detections
     
-    def detect_single(self, image: Image.Image) -> List[Dict]:
-        """단일 이미지에서 감지"""
-        results = self.detect([image])
-        return results[0] if results else []
-    
-    def filter_by_class(
-        self, 
-        detections: List[Dict], 
-        class_names: List[str]
-    ) -> List[Dict]:
-        """특정 클래스만 필터링"""
-        return [d for d in detections if d['class_name'] in class_names]
-    
-    def get_figures_and_tables(self, detections: List[List[Dict]]) -> List[List[Dict]]:
-        """그림과 표만 추출"""
-        return [
-            self.filter_by_class(page, ['figure', 'table'])
-            for page in detections
-        ]
-    
-    def get_equations(self, detections: List[List[Dict]]) -> List[List[Dict]]:
-        """수식만 추출"""
-        return [
-            self.filter_by_class(page, ['equation'])
-            for page in detections
-        ]
 
 
 class MockYOLODetector(YOLODetector):

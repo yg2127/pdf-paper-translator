@@ -31,6 +31,7 @@ from modules.image_extractor import ImageExtractor
 from modules.translator import Translator
 from modules.pdf_generator import PDFGenerator
 from modules.coordinate_transformer import CoordinateTransformer
+from modules.text_extractor import TextExtractor
 from modules.term_extractor import TermExtractor
 from config import TERM_EXTRACT_CLASSES
 
@@ -77,6 +78,7 @@ class PaperTranslatorPipeline:
             default_font_size=self.config.get("default_font_size", 10),
         )
         self.coord_transformer = CoordinateTransformer()
+        self.text_extractor = TextExtractor()
 
         # 용어 추출기: 영어 용어 유지 + 볼드 처리용
         self.term_extractor = TermExtractor(
@@ -221,9 +223,7 @@ class PaperTranslatorPipeline:
         - 하이픈/개행 정리
         Returns: {'texts': [...], 'positions': [...]} (페이지별 리스트)
         """
-        import fitz
-
-        doc = fitz.open(str(pdf_path))
+        pages_words = self.text_extractor.extract_word_tuples(pdf_path)
         translated_texts = []
         text_positions = []
         count = 0
@@ -231,15 +231,13 @@ class PaperTranslatorPipeline:
         known_terms = known_terms or set(self.translator.terminology_dict.keys())
 
         for page_idx, page_dets in enumerate(text_detections):
-            page = doc[page_idx]
-            words = page.get_text("words")  # (x0,y0,x1,y1,word,block,line,word_no)
+            # words: (x0,y0,x1,y1,word,block,line,word_no)
+            words, page_w, page_h = pages_words[page_idx]
 
             page_texts = []
             page_positions = []
 
             img_w, img_h = images[page_idx].size
-            page_w = page.rect.width
-            page_h = page.rect.height
 
             for det in page_dets:
                 bbox_img = det.get("bbox")
@@ -256,7 +254,7 @@ class PaperTranslatorPipeline:
                 collected = []
                 for w in words:
                     wx0, wy0, wx1, wy1, wtext, wblock, wline, _ = w
-                    if self._boxes_intersect(bbox_pdf, (wx0, wy0, wx1, wy1)):
+                    if self.coord_transformer.intersects(bbox_pdf, (wx0, wy0, wx1, wy1)):
                         collected.append((wblock, wline, wy0, wx0, wtext))
 
                 if not collected:
@@ -280,8 +278,6 @@ class PaperTranslatorPipeline:
 
             translated_texts.append(page_texts)
             text_positions.append(page_positions)
-
-        doc.close()
 
         # 추출된 용어 통계 출력
         if self.term_extractor:
@@ -316,17 +312,12 @@ class PaperTranslatorPipeline:
         if not classes_set:
             return
 
-        import fitz
-
-        doc = fitz.open(str(pdf_path))
+        pages_words = self.text_extractor.extract_word_tuples(pdf_path)
 
         for page_idx, page_dets in enumerate(detections):
-            page = doc[page_idx]
-            words = page.get_text("words")
+            words, page_w, page_h = pages_words[page_idx]
 
             img_w, img_h = images[page_idx].size
-            page_w = page.rect.width
-            page_h = page.rect.height
 
             for det in page_dets:
                 class_name = det.get("class_name", "").lower()
@@ -344,7 +335,7 @@ class PaperTranslatorPipeline:
                 collected = []
                 for w in words:
                     wx0, wy0, wx1, wy1, wtext, wblock, wline, _ = w
-                    if self._boxes_intersect(bbox_pdf, (wx0, wy0, wx1, wy1)):
+                    if self.coord_transformer.intersects(bbox_pdf, (wx0, wy0, wx1, wy1)):
                         collected.append((wblock, wline, wy0, wx0, wtext))
 
                 if not collected:
@@ -369,8 +360,6 @@ class PaperTranslatorPipeline:
                     self.translator.add_terminology(term, term, bold=is_title)
                     known_terms.add(term)
 
-        doc.close()
-
     def _expand_box(self, box, padding_ratio=0.05):
         x0, y0, x1, y1 = box
         w = x1 - x0
@@ -386,14 +375,6 @@ class PaperTranslatorPipeline:
         while "  " in text:
             text = text.replace("  ", " ")
         return text.strip()
-
-    def _boxes_intersect(self, box1, box2) -> bool:
-        """두 박스(PyMuPDF 좌표)가 겹치는지 검사"""
-        x1 = max(box1[0], box2[0])
-        y1 = max(box1[1], box2[1])
-        x2 = min(box1[2], box2[2])
-        y2 = min(box1[3], box2[3])
-        return x2 > x1 and y2 > y1
 
     def _generate_pdfs(
         self,

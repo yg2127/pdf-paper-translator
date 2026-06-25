@@ -253,7 +253,7 @@ class PDFGenerator:
             try:
                 self._draw_text_in_box(c, text, pdf_x, pdf_y, box_width, box_height, font_size)
             except Exception as e:
-                print(f"  ⚠️  텍스트 그리기 실패: {text[:30]}... - {e}")
+                print(f"  텍스트 그리기 실패: {text[:30]}... - {e}")
     
     def _draw_image_element(
         self,
@@ -317,24 +317,6 @@ class PDFGenerator:
             if needed_height <= box_height:
                 return size
         return preferred_min
-
-    def _wrap_text(self, text: str, max_chars: int) -> list:
-        """단순 문자 수 기반 줄바꿈 (호환용)"""
-        lines = []
-        current = ""
-        for ch in text:
-            if ch == "\n":
-                lines.append(current)
-                current = ""
-                continue
-            if len(current) >= max_chars:
-                lines.append(current)
-                current = ch
-            else:
-                current += ch
-        if current:
-            lines.append(current)
-        return lines or [""]
 
     def _string_width(self, text: str, font_size: int, bold: bool = False) -> float:
         from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -402,20 +384,6 @@ class PDFGenerator:
                     if not split_token.isspace():
                         current.append((split_token, split_bold))
                         current_width = split_width
-            continue
-
-            new_width = current_width + token_width
-            if new_width <= max_width or not current:
-                current.append((token, is_bold))
-                current_width = new_width
-            else:
-                lines.append(current)
-                current = []
-                current_width = 0.0
-                # 공백은 줄 맨 앞에서 제거
-                if not token.isspace():
-                    current.append((token, is_bold))
-                    current_width = token_width
 
         if current:
             lines.append(current)
@@ -479,43 +447,7 @@ class PDFGenerator:
                     else:
                         c.drawString(current_x, current_y, token)
                 except Exception as e:
-                    print(f"  ⚠️  drawString 실패 (줄 {i+1}): {token[:20]}... - {e}")
+                    print(f"  drawString 실패 (줄 {i+1}): {token[:20]}... - {e}")
                 current_x += self._string_width(token, size, is_bold)
             current_y -= line_height
     
-    def generate_simple(
-        self,
-        output_path: Union[str, Path],
-        pages_content: List[Dict]
-    ) -> str:
-        """
-        간단한 텍스트 PDF 생성
-        
-        Args:
-            output_path: 출력 경로
-            pages_content: [{'texts': [...], 'positions': [...]}]
-        """
-        output_path = Path(output_path)
-        c = canvas.Canvas(str(output_path), pagesize=self.page_size)
-        page_width, page_height = self.page_size
-        
-        for page in pages_content:
-            texts = page.get('texts', [])
-            
-            c.setFont(self.font_name, self.default_font_size)
-            
-            y = page_height - 50  # 상단 마진
-            
-            for text in texts:
-                if y < 50:  # 하단 마진
-                    c.showPage()
-                    c.setFont(self.font_name, self.default_font_size)
-                    y = page_height - 50
-                
-                c.drawString(50, y, text[:100])  # 한 줄 최대 100자
-                y -= self.default_font_size * 1.5
-            
-            c.showPage()
-        
-        c.save()
-        return str(output_path)

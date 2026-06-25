@@ -169,6 +169,20 @@ class TextExtractor:
         doc.close()
         return all_pages
     
+    def extract_word_tuples(self, pdf_path: Union[str, Path]):
+        """
+        페이지별 (words, page_width, page_height) 반환.
+        words는 PyMuPDF get_text("words")의 원형 튜플 리스트
+        (x0, y0, x1, y1, word, block_no, line_no, word_no).
+        """
+        pdf_path = Path(pdf_path)
+        doc = fitz.open(str(pdf_path))
+        pages = []
+        for page in doc:
+            pages.append((page.get_text("words"), page.rect.width, page.rect.height))
+        doc.close()
+        return pages
+
     def get_page_info(self, pdf_path: Union[str, Path]) -> List[Dict]:
         """페이지 정보 반환"""
         doc = fitz.open(str(pdf_path))
