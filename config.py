@@ -59,8 +59,6 @@ DEFAULT_CONFIG = {
     "pdf_text_bg_margin": 4,  # 텍스트 덮는 흰 배경 여백(px, 이미지 좌표 기준)
     "generate_no_background_variant": True,  # 배경 없이 흰 바탕+그림만 두 번째 PDF 생성
     "no_background_suffix": "_nobg",  # 배경 없는 PDF 파일명 접미사 (확장자 자동 추가)
-    # 좌표 변환 설정
-    "overlap_threshold": 0.3,  # IoU 임계값 (낮을수록 겹침으로 간주해 번역을 건너뜀)
     # 출력 설정
     "output_dir": str(OUTPUT_DIR),
     # 용어 사전 설정 (영어 용어 유지 + 볼드 표시)
