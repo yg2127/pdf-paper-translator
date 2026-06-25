@@ -36,6 +36,12 @@ DEFAULT_CONFIG = {
     "yolo_model_path": str(yolo_Models_DIR),
     "yolo_confidence": 0.5,
     "yolo_iou": 0.45,
+    # (선택) OCR 설정 — modules/ocr_processor.py(EasyOCR)용.
+    #   기본 파이프라인은 PyMuPDF 텍스트를 사용하므로 비활성 상태이며,
+    #   그림/이미지 내부 텍스트 인식이 필요할 때 OCRProcessor에서 참조한다.
+    "ocr_enabled": False,
+    "ocr_languages": ["en"],
+    "ocr_gpu": True,
     # 번역 설정
     "translation_model": str(MODEL_13B_DIR),  # 13B 병합 모델 (기본)
     "translation_max_length": 512,

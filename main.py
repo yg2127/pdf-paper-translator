@@ -1,14 +1,19 @@
 """
 논문 번역기 파이프라인 (Paper Translator Pipeline)
 
-파이프라인 구조:
-1. PDF → PDF2Image (고해상도 이미지 변환)
-2. PyMuPDF (텍스트 조각 및 Bounding Box 추출)
-3. YOLOv11 (그림, 표, 수식, 캡션 감지)
-4. Pillow (원본 이미지 추출)
-5. EasyOCR (이미지 내 텍스트 인식)
-6. 파인튜닝된 13B 모델 (영어→한국어 번역)
-7. ReportLab (한국어 PDF 생성)
+기본 파이프라인 흐름 (process()):
+1. PDF → 이미지 변환 (pdf2image, DPI 300)
+2. YOLOv11 레이아웃 감지 → Text / 비Text(그림·표·수식·캡션·제목) 분리
+3. PyMuPDF로 YOLO Text 박스와 겹치는 단어만 수집 (좌표 변환 + 패딩)
+4. Title/Section-header 등에서 학술 용어 추출 → 번역 시 원문 보호(+ 볼드)
+5. 영어→한국어 번역 (기본 MarianMT, 환경변수로 파인튜닝 13B 모델로 전환)
+6. 비Text 영역 보존 + ReportLab로 한국어 PDF 생성 (배경 유지/제거 2종)
+
+선택(Optional) 모듈:
+- EasyOCR(modules/ocr_processor.py): 그림/이미지 내부 텍스트를 인식해
+  term_extractor.extract_from_ocr_results()로 용어 추출에 활용 가능.
+  기본 흐름은 PyMuPDF 텍스트를 사용하며 OCR은 기본적으로 비활성화 상태.
+- 모델 학습 코드(YOLO·Tower 13B/7B LoRA)는 training/ 디렉토리 참조.
 """
 
 import os
@@ -32,49 +37,52 @@ from config import TERM_EXTRACT_CLASSES
 
 class PaperTranslatorPipeline:
     """논문 번역 파이프라인 메인 클래스"""
-    
+
     def __init__(self, config: dict):
         """
         Args:
             config: 설정 딕셔너리 (config.py의 DEFAULT_CONFIG 사용)
         """
         if config is None:
-            raise ValueError("config는 필수입니다. config.py의 DEFAULT_CONFIG를 사용하세요.")
+            raise ValueError(
+                "config는 필수입니다. config.py의 DEFAULT_CONFIG를 사용하세요."
+            )
         self.config = config
-        
+
         # 모듈 초기화
-        self.pdf_converter = PDFConverter(dpi=self.config['dpi'])
-        self.yolo_detector = YOLODetector(model_path=self.config['yolo_model_path'])
+        self.pdf_converter = PDFConverter(dpi=self.config["dpi"])
+        self.yolo_detector = YOLODetector(model_path=self.config["yolo_model_path"])
         self.image_extractor = ImageExtractor()
         self.translator = Translator(
-            model_name=self.config['translation_model'],
-            term_bold=self.config.get('term_bold', True),
-            max_length=self.config.get('translation_max_length', 512),
-            use_4bit=self.config.get('translation_use_4bit', True),
-            model_type=self.config.get('translation_model_type', None)
+            model_name=self.config["translation_model"],
+            term_bold=self.config.get("term_bold", True),
+            max_length=self.config.get("translation_max_length", 512),
+            use_4bit=self.config.get("translation_use_4bit", True),
+            model_type=self.config.get("translation_model_type", None),
         )
         # 베이스 용어 사전 로드
-        if self.config.get('terminology_dict_path'):
-            terminology_path = self.config['terminology_dict_path']
+        if self.config.get("terminology_dict_path"):
+            terminology_path = self.config["terminology_dict_path"]
             if Path(terminology_path).exists():
                 print(f"베이스 용어 사전 로드 중: {terminology_path}")
-                self.translator.load_terminology(terminology_path, bold=False)  # 기본 사전은 볼드 처리 안 함
+                self.translator.load_terminology(
+                    terminology_path, bold=False
+                )  # 기본 사전은 볼드 처리 안 함
             else:
                 print(f"경고: 용어 사전 파일을 찾을 수 없습니다: {terminology_path}")
 
         self.pdf_generator = PDFGenerator(
-            font_path=self.config['korean_font_path'],
-            bold_font_path=self.config.get('korean_bold_font_path'),
-            default_font_size=self.config.get('default_font_size', 10)
+            font_path=self.config["korean_font_path"],
+            bold_font_path=self.config.get("korean_bold_font_path"),
+            default_font_size=self.config.get("default_font_size", 10),
         )
         self.coord_transformer = CoordinateTransformer()
 
         # 용어 추출기: 영어 용어 유지 + 볼드 처리용
         self.term_extractor = TermExtractor(
-            extract_from_fte=True,
-            extract_from_title=True
+            extract_from_fte=True, extract_from_title=True
         )
-    
+
     def process(self, pdf_path: str, output_path: str = None) -> str:
         """
         PDF를 YOLO Text 박스 기준으로만 번역합니다.
@@ -85,7 +93,7 @@ class PaperTranslatorPipeline:
 
         pdf_path = Path(pdf_path)
         if output_path is None:
-            output_path = Path(self.config['output_dir']) / f"{pdf_path.stem}_ko.pdf"
+            output_path = Path(self.config["output_dir"]) / f"{pdf_path.stem}_ko.pdf"
         else:
             output_path = Path(output_path)
 
@@ -97,14 +105,14 @@ class PaperTranslatorPipeline:
         step_start = time.time()
         print(f"[1/5] PDF를 이미지로 변환 중... ({pdf_path})")
         images = self.pdf_converter.convert(pdf_path)
-        step_times['1_pdf_to_image'] = time.time() - step_start
+        step_times["1_pdf_to_image"] = time.time() - step_start
         print(f"    ✓ 완료 ({step_times['1_pdf_to_image']:.1f}초)")
 
         # [2/5] YOLO 감지
         step_start = time.time()
         print(f"[2/5] YOLO 감지 중...")
         detections = self.yolo_detector.detect(images)
-        step_times['2_yolo_detect'] = time.time() - step_start
+        step_times["2_yolo_detect"] = time.time() - step_start
         print(f"    ✓ 완료 ({step_times['2_yolo_detect']:.1f}초)")
 
         # [3/5] 감지 분리
@@ -116,15 +124,17 @@ class PaperTranslatorPipeline:
             text_page = []
             preserve_page = []
             for det in page:
-                cls = det.get('class_name', '').lower()
-                if cls == 'text':
+                cls = det.get("class_name", "").lower()
+                if cls == "text":
                     text_page.append(det)
                 else:
                     preserve_page.append(det)
             text_detections.append(text_page)
             preserve_detections.append(preserve_page)
-        step_times['3_split'] = time.time() - step_start
-        print(f"    ✓ 완료 ({step_times['3_split']:.1f}초) [텍스트 박스 {sum(len(p) for p in text_detections)}개]")
+        step_times["3_split"] = time.time() - step_start
+        print(
+            f"    ✓ 완료 ({step_times['3_split']:.1f}초) [텍스트 박스 {sum(len(p) for p in text_detections)}개]"
+        )
 
         # [4/5] 번역 텍스트 구성 (PyMuPDF words → YOLO Text 박스와 겹치는 단어만)
         step_start = time.time()
@@ -138,16 +148,13 @@ class PaperTranslatorPipeline:
                 pdf_path=pdf_path,
                 detections=detections,
                 images=images,
-                known_terms=known_terms
+                known_terms=known_terms,
             )
 
         translated = self._translate_from_pymupdf_words(
-            pdf_path,
-            text_detections,
-            images,
-            known_terms
+            pdf_path, text_detections, images, known_terms
         )
-        step_times['4_translate'] = time.time() - step_start
+        step_times["4_translate"] = time.time() - step_start
         print(f"    ✓ 완료 ({step_times['4_translate']:.1f}초)")
 
         # 비텍스트 영역 추출(보존용)
@@ -159,18 +166,22 @@ class PaperTranslatorPipeline:
         self._generate_pdfs(
             images=images,
             preserved_images=preserved_images,
-            translated_texts=translated['texts'],
-            text_positions=translated['positions'],
+            translated_texts=translated["texts"],
+            text_positions=translated["positions"],
             pdf_path=pdf_path,
-            output_path=output_path
+            output_path=output_path,
         )
-        step_times['5_generate'] = time.time() - step_start
+        step_times["5_generate"] = time.time() - step_start
         print(f"    ✓ 완료 ({step_times['5_generate']:.1f}초)")
 
         # 용어 사전 저장
-        if self.term_extractor and self.config.get('save_extracted_terms', True):
-            terms_path = self.config.get('terms_output_path', None)
-            terms_path = Path(terms_path) if terms_path else Path(self.config['output_dir']) / "extracted_terms.tsv"
+        if self.term_extractor and self.config.get("save_extracted_terms", True):
+            terms_path = self.config.get("terms_output_path", None)
+            terms_path = (
+                Path(terms_path)
+                if terms_path
+                else Path(self.config["output_dir"]) / "extracted_terms.tsv"
+            )
             terms_output = terms_path.parent / f"{pdf_path.stem}_terms.tsv"
             self.term_extractor.save_terms(str(terms_output))
 
@@ -183,7 +194,9 @@ class PaperTranslatorPipeline:
         seconds = elapsed_time % 60
 
         print(f"\n완료! 출력 파일: {output_path}")
-        print(f"총 소요 시간: {hours:02d}:{minutes:02d}:{seconds:05.2f} ({elapsed_time:.2f}초)")
+        print(
+            f"총 소요 시간: {hours:02d}:{minutes:02d}:{seconds:05.2f} ({elapsed_time:.2f}초)"
+        )
 
         print(f"\n=== 단계별 소요 시간 ===")
         print(f"  [1] PDF → 이미지: {step_times['1_pdf_to_image']:.1f}초")
@@ -194,7 +207,13 @@ class PaperTranslatorPipeline:
         print(f"=" * 30)
         return str(output_path)
 
-    def _translate_from_pymupdf_words(self, pdf_path: Path, text_detections: list, images: list, known_terms: set = None) -> dict:
+    def _translate_from_pymupdf_words(
+        self,
+        pdf_path: Path,
+        text_detections: list,
+        images: list,
+        known_terms: set = None,
+    ) -> dict:
         """
         PyMuPDF 단어 정보를 사용해 YOLO Text 박스와 겹치는 텍스트만 번역
         - YOLO 박스를 소폭 확장해 단어 누락을 줄임
@@ -203,6 +222,7 @@ class PaperTranslatorPipeline:
         Returns: {'texts': [...], 'positions': [...]} (페이지별 리스트)
         """
         import fitz
+
         doc = fitz.open(str(pdf_path))
         translated_texts = []
         text_positions = []
@@ -222,12 +242,14 @@ class PaperTranslatorPipeline:
             page_h = page.rect.height
 
             for det in page_dets:
-                bbox_img = det.get('bbox')
+                bbox_img = det.get("bbox")
                 if not bbox_img:
                     continue
 
                 # YOLO → PyMuPDF 좌표 변환 + 소폭 패딩(5%)으로 단어 누락 줄이기
-                bbox_pdf = self.coord_transformer.yolo_to_pymupdf(bbox_img, page_w, page_h, img_w, img_h)
+                bbox_pdf = self.coord_transformer.yolo_to_pymupdf(
+                    bbox_img, page_w, page_h, img_w, img_h
+                )
                 bbox_pdf = self._expand_box(bbox_pdf, padding_ratio=0.05)
 
                 # 겹치는 단어 수집 (block, line, y, x 순 정렬)
@@ -241,7 +263,7 @@ class PaperTranslatorPipeline:
                     continue
 
                 collected.sort()  # block, line, y, x 순
-                text_raw = ' '.join([w[4] for w in collected])
+                text_raw = " ".join([w[4] for w in collected])
                 text_clean = self._clean_text(text_raw)
 
                 # Text 박스에서는 별도 용어 추출을 하지 않음 (TERM_EXTRACT_CLASSES 기반은 별도 패스에서 처리)
@@ -263,14 +285,22 @@ class PaperTranslatorPipeline:
 
         # 추출된 용어 통계 출력
         if self.term_extractor:
-            preserve_terms = [t for t in self.term_extractor.dictionary.terms.values() if t.preserve]
-            title_terms = [t for t in preserve_terms if t.source_type.lower() == 'title']
-            print(f"    용어 등록: {len(preserve_terms)}개 (Title 볼드 {len(title_terms)}개)")
+            preserve_terms = [
+                t for t in self.term_extractor.dictionary.terms.values() if t.preserve
+            ]
+            title_terms = [
+                t for t in preserve_terms if t.source_type.lower() == "title"
+            ]
+            print(
+                f"    용어 등록: {len(preserve_terms)}개 (Title 볼드 {len(title_terms)}개)"
+            )
 
         print(f"    총 번역 완료: {count}/{total_boxes}")
-        return {'texts': translated_texts, 'positions': text_positions}
+        return {"texts": translated_texts, "positions": text_positions}
 
-    def _extract_terms_from_config_classes(self, pdf_path: Path, detections: list, images: list, known_terms: set):
+    def _extract_terms_from_config_classes(
+        self, pdf_path: Path, detections: list, images: list, known_terms: set
+    ):
         """
         TERM_EXTRACT_CLASSES에 정의된 라벨의 박스에서만 용어 추출 (번역 보호용)
         - 박스는 번역/오버레이하지 않고 원본 유지
@@ -279,11 +309,15 @@ class PaperTranslatorPipeline:
         if not self.term_extractor:
             return
 
-        classes_set = set(c.lower() for c in self.config.get('term_extract_classes', TERM_EXTRACT_CLASSES))
+        classes_set = set(
+            c.lower()
+            for c in self.config.get("term_extract_classes", TERM_EXTRACT_CLASSES)
+        )
         if not classes_set:
             return
 
         import fitz
+
         doc = fitz.open(str(pdf_path))
 
         for page_idx, page_dets in enumerate(detections):
@@ -295,14 +329,16 @@ class PaperTranslatorPipeline:
             page_h = page.rect.height
 
             for det in page_dets:
-                class_name = det.get('class_name', '').lower()
+                class_name = det.get("class_name", "").lower()
                 if class_name not in classes_set:
                     continue
-                bbox_img = det.get('bbox')
+                bbox_img = det.get("bbox")
                 if not bbox_img:
                     continue
 
-                bbox_pdf = self.coord_transformer.yolo_to_pymupdf(bbox_img, page_w, page_h, img_w, img_h)
+                bbox_pdf = self.coord_transformer.yolo_to_pymupdf(
+                    bbox_img, page_w, page_h, img_w, img_h
+                )
                 bbox_pdf = self._expand_box(bbox_pdf, padding_ratio=0.05)
 
                 collected = []
@@ -315,13 +351,11 @@ class PaperTranslatorPipeline:
                     continue
 
                 collected.sort()
-                text_raw = ' '.join([w[4] for w in collected])
+                text_raw = " ".join([w[4] for w in collected])
                 text_clean = self._clean_text(text_raw)
 
                 self.term_extractor.extract_from_text(
-                    text_clean,
-                    source_type=class_name,
-                    page_num=page_idx + 1
+                    text_clean, source_type=class_name, page_num=page_idx + 1
                 )
 
                 # 새로 추출된 용어를 번역기에 등록 (Title만 볼드)
@@ -331,7 +365,7 @@ class PaperTranslatorPipeline:
                     term = term_obj.term
                     if term in known_terms:
                         continue
-                    is_title = term_obj.source_type.lower() == 'title'
+                    is_title = term_obj.source_type.lower() == "title"
                     self.translator.add_terminology(term, term, bold=is_title)
                     known_terms.add(term)
 
@@ -368,7 +402,7 @@ class PaperTranslatorPipeline:
         translated_texts,
         text_positions,
         pdf_path,
-        output_path
+        output_path,
     ):
         """배경 유지/비유지 두 가지 버전 생성"""
         self.pdf_generator.generate(
@@ -378,13 +412,15 @@ class PaperTranslatorPipeline:
             translated_texts=translated_texts,
             text_positions=text_positions,
             original_pdf_path=pdf_path,
-            draw_background=self.config.get('pdf_draw_background', True),
-            text_bg_margin=self.config.get('pdf_text_bg_margin', 2)
+            draw_background=self.config.get("pdf_draw_background", True),
+            text_bg_margin=self.config.get("pdf_text_bg_margin", 2),
         )
 
-        if self.config.get('generate_no_background_variant', False):
-            raw_suffix = self.config.get('no_background_suffix', '_nobg')
-            suffix = raw_suffix[:-4] if raw_suffix.lower().endswith('.pdf') else raw_suffix
+        if self.config.get("generate_no_background_variant", False):
+            raw_suffix = self.config.get("no_background_suffix", "_nobg")
+            suffix = (
+                raw_suffix[:-4] if raw_suffix.lower().endswith(".pdf") else raw_suffix
+            )
             no_bg_output = output_path.with_name(f"{output_path.stem}{suffix}.pdf")
             print(f"    → 배경 없는 PDF 생성: {no_bg_output}")
             self.pdf_generator.generate(
@@ -395,7 +431,7 @@ class PaperTranslatorPipeline:
                 text_positions=text_positions,
                 original_pdf_path=pdf_path,
                 draw_background=False,
-                text_bg_margin=self.config.get('pdf_text_bg_margin', 2)
+                text_bg_margin=self.config.get("pdf_text_bg_margin", 2),
             )
 
     def _is_skip_class(self, class_name: str) -> bool:
@@ -426,8 +462,8 @@ def main():
 
     # 파이프라인 실행
     pipeline = PaperTranslatorPipeline(config)
-    pipeline.process(config['input_pdf'], config['output_pdf'])
+    pipeline.process(config["input_pdf"], config["output_pdf"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

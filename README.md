@@ -1,12 +1,13 @@
-# 논문 번역기 파이프라인 (Paper Translator Pipeline)
+# 논문 번역기 (PDF Paper Translator)
 
-원본 레이아웃을 보존하며 영문 학술 논문 PDF를 한국어로 자동 번역하는 AI 파이프라인입니다.
+영문 학술 논문 PDF를 레이아웃은 그대로 두고 본문만 한국어로 바꾸는 파이프라인이다. 그림·표·수식은 원본을 그대로 얹고, 본문 텍스트 영역만 골라 번역해 덮는다.
 
-- **DocLayNet으로 파인튜닝한 YOLOv11**으로 그림/표/수식/캡션 영역 감지
-- **PyMuPDF** 텍스트 추출 + 커스텀 point↔pixel 좌표 변환
-- **Helsinki-NLP en-ko** 모델로 원본 PDF 레이아웃을 유지한 채 번역
+- **레이아웃 검출** — YOLOv11로 본문/그림/표/수식 영역을 잡아 번역할 곳과 보존할 곳을 가른다 (DocLayNet 모델)
+- **본문 추출 + 용어 보호** — PyMuPDF로 본문 단어를 뽑고, 약어·그리스 문자·모델명 같은 학술 용어는 번역에서 빼 원문 그대로 둔다
+- **번역** — TowerInstruct-13B를 직접 QLoRA 파인튜닝, 기본값은 MarianMT
+- **재배치** — 픽셀↔포인트 좌표 변환으로 번역문을 원래 위치에 다시 그린다
 
-> 세종대학교 인공지능학과 재학 중 진행한 개인 프로젝트입니다 (2025).
+> 세종대 인공지능학과 _파이썬기반딥러닝_ 수업으로 만든 프로젝트(2025). 추론 파이프라인은 [`modules/`](modules/), 모델 학습·평가 코드는 [`training/`](training/)에 있다.
 
 ## 번역 예시
 
@@ -14,430 +15,149 @@
 | :---------------------------------------------------------------------: | :--------------------------------------------------------: |
 | <img src="assets/before_yolo.png" alt="YOLO 레이아웃 감지" width="400"> | <img src="assets/after.png" alt="번역된 논문" width="400"> |
 
-> **왼쪽**: YOLOv11이 그림·표·수식·제목·본문 영역을 박스로 감지한 결과.
-> 감지된 영역을 기준으로 번역 대상(본문)과 보존 대상(그림/표/수식)을 구분합니다.
-> **오른쪽**: 원본 레이아웃을 그대로 유지한 채 본문만 한국어로 교체한 결과.
-> 배경 이미지를 제거한 깔끔한 버전도 함께 생성됩니다 ([`assets/after_nobg.png`](assets/after_nobg.png)).
+왼쪽은 YOLOv11이 그림·표·수식·제목·본문을 박스로 잡은 결과, 오른쪽은 그 영역을 기준으로 본문만 한국어로 바꾼 결과다. 배경 이미지를 뺀 버전([`assets/after_nobg.png`](assets/after_nobg.png))도 같이 나온다.
 
-## 주요 기능
+## 아키텍처
 
-- PDF 논문을 고품질 한국어로 자동 번역
-- 그림, 표, 수식 영역 자동 감지 및 보존
-- 학술 용어 자동 추출 및 원문 유지
-- OCR 기반 이미지 내 텍스트 인식
-- 원본 레이아웃을 유지한 한국어 PDF 생성
+<img src="assets/pipeline.svg" alt="파이프라인 다이어그램" width="460">
 
-## 파이프라인 아키텍처
+<details>
+<summary>다이어그램 소스 (Mermaid · 편집용)</summary>
 
-```
-PDF 입력
-   ↓
-[1] PDF → 이미지 변환 (pdf2image, DPI 300)
-   ↓
-[2] 텍스트 및 위치 정보 추출 (PyMuPDF)
-   ↓
-[3] 객체 감지 (YOLOv11: 그림/표/수식/캡션/제목)
-   ↓
-[4] 이미지 영역 추출 (Pillow)
-   ↓
-[5] 이미지 내 텍스트 인식 (EasyOCR)
-   ↓
-[6] 학술 용어 추출 (FTE/Title에서 자동 추출)
-   ↓
-[7] 영어→한국어 번역 (파인튜닝된 13B 모델 또는 MarianMT)
-   ↓
-[8] 한국어 PDF 생성 (ReportLab)
-   ↓
-한국어 PDF 출력
+```mermaid
+flowchart TD
+    A[PDF 입력] --> B["PDF → 이미지<br/>pdf2image · 300 DPI"]
+    B --> C{"YOLOv11<br/>레이아웃 감지"}
+    C -->|본문 영역| D["PyMuPDF로 겹치는<br/>단어 수집 · 좌표 변환"]
+    C -->|그림 · 표 · 수식| E["원본 영역 보존"]
+    D --> F["학술 용어 추출<br/>원문 유지 · 볼드"]
+    F --> G["영어 → 한국어 번역<br/>MarianMT · TowerInstruct-13B"]
+    G --> H["ReportLab로 한국어 PDF 생성"]
+    E --> H
+    H --> I["한국어 PDF 출력<br/>레이아웃 유지"]
 ```
 
-## 설치
+본문은 번역해서 덮고, 그림·표·수식은 원본을 그대로 두는 두 갈래가 마지막 PDF 생성 단계에서 합쳐진다.
 
-### 1. 의존성 설치
+> 그림 안에 박힌 글자까지 읽고 싶으면 EasyOCR 모듈([`modules/ocr_processor.py`](modules/ocr_processor.py))을 붙여 `term_extractor.extract_from_ocr_results()`로 넘기면 된다. 기본 흐름은 PyMuPDF 텍스트만 쓰고 OCR은 꺼둔 상태다(`config.py`의 `ocr_enabled=False`). 왜 뺐는지는 아래 [통합하면서 겪은 것](#통합하면서-겪은-것)에 적어뒀다.
+
+## 모듈 (`modules/`)
+
+| 모듈                        | 하는 일                                                       |
+| --------------------------- | ------------------------------------------------------------- |
+| `pdf_converter.py`          | PDF를 고해상도 이미지로 변환 (pdf2image)                      |
+| `text_extractor.py`         | PyMuPDF로 텍스트·바운딩박스 추출 (span/block/word 단위)       |
+| `yolo_detector.py`          | YOLOv11 레이아웃 감지 (+ `MockYOLODetector`)                  |
+| `image_extractor.py`        | 보존할 그림/표/수식 영역을 이미지로 잘라냄 (Pillow)           |
+| `ocr_processor.py`          | _(선택)_ EasyOCR로 이미지 속 글자 인식 (+ `MockOCRProcessor`) |
+| `term_extractor.py`         | 약어·그리스 문자·모델명을 골라 번역에서 보호                  |
+| `translator.py`             | 영어→한국어 번역 (TowerInstruct-13B `causal` / MarianMT)      |
+| `coordinate_transformer.py` | YOLO(pixel) ↔ PyMuPDF(point) 좌표 변환                        |
+| `pdf_generator.py`          | ReportLab로 한국어 PDF 생성 (배경 유지/제거 두 종류)          |
+
+## 모델 학습과 성능 (`training/`)
+
+레이아웃 검출과 번역, 두 모델을 직접 학습시켰다. 코드와 평가는 [`training/`](training/)에, 자세한 설명은 [`training/README.md`](training/README.md)에 있다.
+
+**YOLOv11 레이아웃 검출** — `yolov11l-doclaynet`을 PubLayNet에 DocLayNet 수식 클래스를 더해 파인튜닝했다. PubLayNet 검증 결과는 아래와 같다.
+
+| mAP@0.5    | mAP@0.5:0.95 | Precision | Recall |
+| ---------- | ------------ | --------- | ------ |
+| **0.9606** | 0.9324       | 0.9830    | 0.9304 |
+
+<img src="training/eval/result/yolo/val/BoxPR_curve.png" alt="YOLO PR Curve" width="440">
+
+다만 이 파인튜닝 모델은 정작 파이프라인엔 쓰지 못했다. 수식 클래스를 병합하는 과정에서 나머지 클래스 라벨이 날아간 채 학습돼, 실제 페이지에선 수식만 잡았다. 그래서 파이프라인은 `yolov11l-doclaynet` 사전학습 모델(11클래스)을 그대로 쓴다 — `config.py`의 `CLASS_NAMES`가 DocLayNet 기준인 것도 이 때문이다.
+
+**TowerInstruct-13B 번역** — `Unbabel/TowerInstruct-13B-v0.1`을 AI-Hub 한영 병렬 말뭉치 4종(en→ko, 약 5백만+ 문장 쌍)으로 QLoRA(4-bit) 파인튜닝했다.
+
+| #   | 데이터셋 (AI-Hub)                         | 구축 | 규모         | 도메인                              |
+| --- | ----------------------------------------- | ---- | ------------ | ----------------------------------- |
+| 1   | 국제 학술대회용 전문분야 한영/영한 통번역 | 2023 | 약 100만+ 쌍 | 의학·IT·전기전자·기계·화학·물리수학 |
+| 2   | 기술과학 분야 한-영 번역 병렬 말뭉치      | 2021 | 약 150만 쌍  | 특허·기술매뉴얼·연구보고서·IT       |
+| 3   | 한국어-영어 번역 말뭉치(기술과학)         | 2020 | 약 160만 쌍  | 과학기술 문헌·뉴스·정부문서         |
+| 4   | 한국어-영어 번역 말뭉치(사회과학)         | 2020 | 약 160만 쌍  | 경제·사회·정치·문화·교육·법률       |
+
+평가는 _Attention Is All You Need_ 본문 24문장으로 했다(정답은 Papago로 옮긴 뒤 직접 검수).
+
+| BLEU      | BERTScore P | BERTScore R | BERTScore F1 |
+| --------- | ----------- | ----------- | ------------ |
+| **59.62** | 0.8935      | 0.8867      | **0.8900**   |
+
+7B 모델 LoRA 파인튜닝(`train_7b_lora.py`)도 따로 돌려봤다.
+
+## 통합하면서 겪은 것
+
+모델은 따로 보면 잘 나왔는데(mAP 0.96, BLEU 59.6), 막상 합치니 논문 한 편 번역에 2시간 40분이 걸리고 번역이 거의 안 나왔다. 원인은 셋이었다.
+
+- **YOLO가 수식만 잡음** — 위에 적은 라벨 버그. 사전학습 DocLayNet 모델로 되돌렸다.
+- **원문이 안 가려짐** — YOLO 박스와 텍스트 좌표 스케일이 안 맞아, 영문 위에 한글이 어긋난 채 겹쳤다. 좌표 변환을 다시 맞췄다.
+- **OCR이 영문을 깨뜨림** — 크롭 이미지 OCR 결과가 너무 망가져서 OCR을 빼고 PyMuPDF 텍스트만 쓰도록 바꿨다. 폰트 크기와 줄바꿈 처리도 같이 손봤다.
+
+## 설치 & 실행
+
+```
+
+</details>bash
+pip install -r requirements.txt          # 추론 파이프라인 (학습 환경은 training/README.md)
+```
+
+가중치·폰트·번역 모델은 용량 때문에 저장소에 넣지 않았다. 직접 받아서 아래 위치에 두면 된다.
+
+- YOLO 가중치 — `models/yolov11l-doclaynet.pt`
+- 한글 폰트 — `fonts/BMHANNAPro.ttf`(본문), `fonts/MaruBuri-Bold.ttf`(볼드)
+- 번역 모델 — 파인튜닝한 13B 병합 모델 디렉토리 (안 두면 MarianMT로 동작)
+
+경로는 환경변수로 덮어쓸 수 있다.
+
+| 환경변수                                     | 기본값                         | 설명                                      |
+| -------------------------------------------- | ------------------------------ | ----------------------------------------- |
+| `PAPER_TRANS_MODEL_DIR`                      | `Helsinki-NLP/opus-mt-en-ko`   | 번역 모델 (로컬 13B 경로면 `causal` 자동) |
+| `PAPER_TRANS_YOLO_PATH`                      | `models/yolov11l-doclaynet.pt` | YOLO 가중치                               |
+| `PAPER_TRANS_INPUT_PDF`                      | `PDF_before/test1.pdf`         | 입력 PDF                                  |
+| `PAPER_TRANS_OUTPUT_DIR`                     | `PDF_after/`                   | 출력 디렉토리                             |
+| `PAPER_TRANS_FONT` / `PAPER_TRANS_BOLD_FONT` | `fonts/…`                      | 한글 폰트                                 |
 
 ```bash
-pip install -r requirements.txt
+python main.py                                   # 기본 (MarianMT)
+PAPER_TRANS_MODEL_DIR=/path/to/13B python main.py   # 파인튜닝 13B로 번역
 ```
 
-### 2. 필수 리소스 준비
+클래스 매핑, IoU 임계값, 폰트 크기, 배경 옵션 같은 세부 설정은 [`config.py`](config.py)의 `DEFAULT_CONFIG`에 모여 있다.
 
-#### YOLO 모델
+## 학술 용어 보호
 
-```bash
-mkdir -p models
-# YOLOv11 논문 객체 감지 모델 다운로드
-# models/yolov11_paper.pt
-```
-
-#### 한글 폰트
-
-```bash
-mkdir -p fonts
-# NanumGothic.ttf 다운로드 및 배치
-# fonts/NanumGothic.ttf
-```
-
-## 사용법
-
-### 기본 실행
-
-```bash
-python main.py input.pdf
-```
-
-### 출력 경로 지정
-
-```bash
-python main.py input.pdf -o output_ko.pdf
-```
-
-### 고급 옵션
-
-```bash
-python main.py input.pdf \
-  --dpi 300 \
-  --yolo-model models/yolov11_paper.pt \
-  --font fonts/NanumGothic.ttf \
-  --no-bold \              # 용어 볼드체 처리 비활성화
-  --no-title-terms \       # Title에서 용어 추출 비활성화
-  --no-fte-terms \         # FTE에서 용어 추출 비활성화
-  --no-save-terms          # 용어 파일 저장 비활성화
-```
-
-## 프로젝트 구조
+`term_extractor`는 제목·섹션 헤더와 그림/표/수식 영역에서 번역하면 안 되는 용어를 골라 원문으로 두고, 제목 용어는 볼드 처리한다.
 
 ```
-trans_pipline_1208/
-├── main.py                          # 메인 파이프라인
-├── config.py                        # 설정 파일
-├── requirements.txt                 # 의존성 목록
-├── modules/                         # 모듈 패키지
-│   ├── __init__.py
-│   ├── pdf_converter.py            # PDF → 이미지 변환
-│   ├── text_extractor.py           # 텍스트 추출 (PyMuPDF)
-│   ├── yolo_detector.py            # YOLO 객체 감지
-│   ├── image_extractor.py          # 이미지 영역 추출
-│   ├── ocr_processor.py            # OCR 처리 (EasyOCR)
-│   ├── term_extractor.py           # 학술 용어 추출
-│   ├── translator.py               # 번역 엔진
-│   ├── coordinate_transformer.py   # 좌표계 변환
-│   └── pdf_generator.py            # PDF 생성 (ReportLab)
-├── models/                          # YOLO 모델
-│   └── yolov11_paper.pt
-├── fonts/                           # 폰트 파일
-│   └── NanumGothic.ttf
-└── output/                          # 출력 디렉토리
-    ├── *_ko.pdf                    # 번역된 PDF
-    └── *_terms.tsv                 # 추출된 용어 사전
+입력:  BERT achieves 0.95 F1-score ... ResNet50 vs VGG16 ... α = 0.01
+보호:  BERT(약어) · F1-score(하이픈) · ResNet50/VGG16(모델명) · α(그리스 문자)
+번역:  the, is, have, model, method … (일반 영단어는 그대로 번역)
 ```
 
-## 주요 모듈 설명
+고른 용어는 `{원본파일명}_terms.tsv`(용어·출처·페이지·빈도·유지여부·이유)로 떨어진다.
 
-### 1. PDF Converter (`pdf_converter.py`)
+## 거쳐온 버전
 
-- PDF를 고해상도 이미지로 변환
-- 기본 DPI: 300
+1. Helsinki-NLP MarianMT 단일 스크립트 프로토타입
+2. EasyOCR로 이미지 속 글자를 읽어 용어집을 만들던 버전 (평탄 구조)
+3. `modules/`로 쪼개고, OCR 대신 규칙 기반 용어 추출로 바꾼 지금 버전
+4. YOLO·Tower 학습 코드를 [`training/`](training/)으로 합침
 
-### 2. Text Extractor (`text_extractor.py`)
+## 한계
 
-- PyMuPDF를 사용한 텍스트 및 바운딩 박스 추출
-- 페이지별 텍스트 블록 정보 제공
+- 다단·복잡 레이아웃은 영역 분리가 흔들릴 수 있다
+- LaTeX 수식은 번역하지 않고 원문 그대로 둔다
+- 한글 폰트·YOLO 가중치·번역 모델은 직접 준비해야 한다 (저장소 미포함)
+- 100페이지 넘는 PDF는 메모리를 많이 먹는다
 
-### 3. YOLO Detector (`yolo_detector.py`)
+## 스택
 
-- YOLOv11 기반 객체 감지
-- 감지 클래스:
-  - `figure`: 그림
-  - `table`: 표
-  - `equation`: 수식
-  - `caption`: 캡션
-  - `title`: 제목
-  - `header`, `footer`, `page_number`
+`Python` · `PyTorch` · `transformers` · `ultralytics(YOLOv11)` · `EasyOCR` · `PyMuPDF` · `pdf2image` · `Pillow` · `ReportLab` · `peft` · `bitsandbytes`
 
-### 4. Term Extractor (`term_extractor.py`)
+## 만든 사람 · 참고
 
-FTE(Figure/Table/Equation) 및 Title에서 학술 용어 자동 추출
+MIT License · **유건** — 세종대 인공지능학과 · [github.com/yg2127](https://github.com/yg2127) · [yg2127.github.io](https://yg2127.github.io)
 
-**추출 규칙:**
-
-- 대문자 약어 (BERT, CNN, GPT)
-- 그리스 문자 (α, β, γ)
-- 숫자 포함 단어 (F1, ResNet50)
-- CamelCase (PyTorch, TensorFlow)
-- 하이픈 기술 용어 (F1-score, self-attention)
-- Figure/Table/Equation 참조
-
-**제외 규칙:**
-
-- 일반 영단어 (the, is, have 등)
-- 소문자만 있는 단어
-
-### 5. Translator (`translator.py`)
-
-**지원 모델:**
-
-- **13B 커스텀 모델** (기본) - 파인튜닝된 13B 번역 모델
-  - ChatML 프롬프트 형식
-  - 4-bit 양자화 지원
-  - 자동 모델 타입 감지
-- **Helsinki-NLP/opus-mt-en-ko** (백업) - MarianMT 모델
-
-**주요 기능:**
-
-- 학술 용어 보호 기능
-- 수식, 참조 자동 보호
-- 배치 번역 지원 (MarianMT)
-- 용어 볼드체 처리 옵션
-
-### 6. OCR Processor (`ocr_processor.py`)
-
-- EasyOCR 기반 텍스트 인식
-- 다국어 지원
-
-### 7. PDF Generator (`pdf_generator.py`)
-
-- ReportLab 기반 한국어 PDF 생성
-- 원본 레이아웃 유지
-- 한글 폰트 지원
-
-## 설정 (config.py)
-
-```python
-DEFAULT_CONFIG = {
-    # PDF 변환
-    "dpi": 300,
-
-    # YOLO
-    "yolo_model_path": "models/yolov11_paper.pt",
-    "yolo_confidence": 0.5,
-    "yolo_iou": 0.45,
-
-    # OCR
-    "ocr_languages": ["en"],
-    "ocr_gpu": True,
-
-    # 번역 (PAPER_TRANS_MODEL_DIR 환경변수로 오버라이드)
-    "translation_model": os.getenv("PAPER_TRANS_MODEL_DIR", "Helsinki-NLP/opus-mt-en-ko"),
-    # 예) export PAPER_TRANS_MODEL_DIR=/path/to/13B_merged
-    "translation_max_length": 512,
-    "translation_batch_size": 8,
-    "translation_use_4bit": True,       # 4-bit 양자화 (13B 모델용)
-    "translation_model_type": None,     # 모델 타입 자동 감지
-
-    # 용어 사전
-    "term_bold": True,                  # 용어 볼드체 처리
-    "extract_title_terms": True,        # Title에서 용어 추출
-    "extract_fte_terms": True,          # FTE에서 용어 추출
-    "save_extracted_terms": True,       # 용어 파일 저장
-
-    # PDF 생성
-    "korean_font_path": "fonts/NanumGothic.ttf",
-    "default_font_size": 10,
-
-    # 좌표 변환
-    "overlap_threshold": 0.3,
-}
-```
-
-## 용어 추출 예시
-
-입력 텍스트:
-
-```
-BERT achieves 0.95 F1-score on the dataset
-ResNet50 vs VGG16 comparison
-α = 0.01, β = 0.99
-Attention Is All You Need: Transformer Architecture
-```
-
-추출된 용어:
-
-```
-✓ 유지 | BERT          | figure    | 대문자 약어
-✓ 유지 | F1-score      | figure    | 하이픈 기술용어
-✓ 유지 | ResNet50      | table     | 모델명/버전
-✓ 유지 | VGG16         | table     | 모델명/버전
-✓ 유지 | α             | equation  | 그리스 문자
-✓ 유지 | β             | equation  | 그리스 문자
-✓ 유지 | Attention     | title     | Title 대문자
-✓ 유지 | All           | title     | Title 대문자
-✓ 유지 | You           | title     | Title 대문자
-✓ 유지 | Need          | title     | Title 대문자
-✓ 유지 | Transformer   | title     | Title 대문자
-✓ 유지 | Architecture  | title     | Title 대문자
-```
-
-## 출력 결과
-
-### 1. 번역된 PDF
-
-- 파일명: `{원본파일명}_ko.pdf`
-- 위치: `output/` 디렉토리
-
-### 2. 추출된 용어 사전
-
-- 파일명: `{원본파일명}_terms.tsv`
-- 형식: TSV (탭 구분)
-- 컬럼:
-  - 용어
-  - 출처 (figure/table/equation/title)
-  - 페이지
-  - 빈도
-  - 유지여부 (O/X)
-  - 이유
-
-예시:
-
-```
-용어	출처	페이지	빈도	유지여부	이유
-BERT	figure	1	5	O	대문자 약어
-ResNet50	table	2	3	O	모델명/버전
-α	equation	3	2	O	그리스 문자
-```
-
-## 번역 워크플로우
-
-1. **텍스트 블록 추출**: PyMuPDF로 텍스트 및 위치 정보 추출
-2. **객체 영역 감지**: YOLO로 그림/표/수식 영역 감지
-3. **겹침 확인**: 텍스트가 YOLO 감지 영역과 겹치는지 확인
-   - 겹치면: 번역하지 않음 (그림/표/수식 내부)
-   - 겹치지 않으면: 번역 수행
-4. **용어 보호**: 학술 용어는 원문 유지 + 볼드체 처리
-5. **OCR 텍스트**: 이미지 내 텍스트도 번역
-
-## 커스텀 번역 모델 사용
-
-### 13B 모델 설정 (기본)
-
-현재 파이프라인은 파인튜닝된 13B 모델을 기본으로 사용합니다.
-
-**1. 모델 병합 (처음 한 번만 실행)**
-
-```bash
-# LoRA adapter와 베이스 모델을 병합 (별도 스크립트)
-python3 merge_and_save.py
-```
-
-**2. 파이프라인 실행**
-
-```bash
-# 13B 병합 모델 경로를 환경변수로 지정
-export PAPER_TRANS_MODEL_DIR=/path/to/13B_merged
-python main.py input.pdf
-```
-
-### 다른 모델로 변경
-
-**환경변수 미설정 시 기본값(MarianMT) 사용:**
-
-```bash
-# 환경변수 없으면 Helsinki-NLP/opus-mt-en-ko로 fallback
-python main.py input.pdf
-```
-
-**다른 HuggingFace 모델 사용:**
-
-```bash
-export PAPER_TRANS_MODEL_DIR=facebook/nllb-200-distilled-600M
-python main.py input.pdf
-```
-
-**다른 커스텀 모델 사용:**
-
-```python
-# config.py에서
-"translation_model": "/path/to/your/model",
-"translation_use_4bit": True,  # 대용량 모델은 True
-"translation_model_type": "causal",  # 또는 "marian"
-```
-
-**코드에서 직접 설정:**
-
-```python
-from modules.translator import Translator
-
-translator = Translator(
-    model_name="/path/to/your/model",
-    device="cuda",
-    max_length=512,
-    term_bold=True,
-    use_4bit=True,
-    model_type="causal"  # 'marian' 또는 'causal'
-)
-```
-
-## 의존성
-
-주요 라이브러리:
-
-- `pdf2image`: PDF → 이미지 변환
-- `PyMuPDF`: 텍스트 추출
-- `Pillow`: 이미지 처리
-- `ultralytics`: YOLOv11 객체 감지
-- `easyocr`: OCR
-- `transformers`: 번역 모델
-- `torch`: 딥러닝 프레임워크
-- `reportlab`: PDF 생성
-- `peft`: LoRA 어댑터 지원
-- `bitsandbytes`: 4-bit 양자화 지원
-
-전체 목록: `requirements.txt` 참조
-
-## 성능 최적화
-
-### GPU 사용
-
-```python
-config = {
-    "ocr_gpu": True,  # OCR GPU 가속
-    # 번역 모델도 자동으로 CUDA 감지
-}
-```
-
-### 배치 처리
-
-```python
-config = {
-    "translation_batch_size": 16,  # 배치 크기 증가 (GPU 메모리에 따라 조정)
-}
-```
-
-### 양자화 모델
-
-```python
-# 4-bit 양자화 모델 사용 (메모리 절약)
-# requirements.txt에 이미 포함:
-# - bitsandbytes
-# - accelerate
-```
-
-## 알려진 제한사항
-
-1. **복잡한 레이아웃**: 매우 복잡한 다단 레이아웃은 정확도가 떨어질 수 있음
-2. **수식**: LaTeX 수식은 번역하지 않고 원문 유지
-3. **폰트**: 한글 폰트는 별도로 준비 필요
-4. **메모리**: 대용량 PDF(100페이지 이상)는 메모리 부족 가능
-
-## 라이선스
-
-MIT License
-
-## 작성자
-
-**유건 (Yu Geon)** — 세종대학교 인공지능학과 학부생 (2023.03 – 2027.02 예정)
-
-연구 관심사: Multimodal Learning · 3D Vision · Driver Behavior Understanding under Domain Shift
-
-- 🐙 GitHub — [@yg2127](https://github.com/yg2127)
-- 📝 Tech Blog — [yg2127.github.io](https://yg2127.github.io)
-- 📧 Email — gyu32386@gmail.com
-
-작성일: 2024-12-08
-
-## 참고
-
-- YOLOv11: https://github.com/ultralytics/ultralytics
-- EasyOCR: https://github.com/JaidedAI/EasyOCR
-- Helsinki-NLP: https://huggingface.co/Helsinki-NLP
-- PyMuPDF: https://pymupdf.readthedocs.io/
-- ReportLab: https://www.reportlab.com/
+- YOLOv11 [ultralytics](https://github.com/ultralytics/ultralytics) · DocLayNet 사전학습 [hantian/yolo-doclaynet](https://huggingface.co/hantian/yolo-doclaynet) · 번역 [Unbabel/TowerInstruct-13B-v0.1](https://huggingface.co/Unbabel/TowerInstruct-13B-v0.1)
+- [PyMuPDF](https://pymupdf.readthedocs.io/) · [EasyOCR](https://github.com/JaidedAI/EasyOCR) · [ReportLab](https://www.reportlab.com/)
