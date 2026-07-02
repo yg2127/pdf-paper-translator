@@ -77,11 +77,11 @@ LoRA  r 64 · alpha 128 · dropout 0.05 · target q/k/v/o/gate/up/down_proj
 
 _Attention Is All You Need_ 본문 24문장으로 평가했다(정답은 Papago로 옮긴 뒤 직접 검수).
 
-| BLEU      | BERTScore P | BERTScore R | BERTScore F1 |
-| --------- | ----------- | ----------- | ------------ |
-| **59.62** | 0.8935      | 0.8867      | **0.8900**   |
+| BERTScore P | BERTScore R | BERTScore F1 |
+| ----------- | ----------- | ------------ |
+| 0.8935      | 0.8867      | **0.8900**   |
 
-좁은 도메인 24문장이라 BLEU가 높게 나온다. 절대 수치보다, 학술 문체에서 용어와 구조를 얼마나 살리는지를 보는 쪽이 맞다. 측정 절차는 [`eval/EVALUATION_GUIDE.md`](eval/EVALUATION_GUIDE.md), 원문/정답/예측은 [`eval/13B/`](eval/13B/)에 있다.
+좁은 도메인 24문장이라, 절대 수치보다 학술 문체에서 용어와 구조를 얼마나 살리는지를 보는 쪽이 맞다. 측정 절차는 [`eval/EVALUATION_GUIDE.md`](eval/EVALUATION_GUIDE.md), 원문/정답/예측은 [`eval/13B/`](eval/13B/)에 있다.
 
 ## 3. 환경
 
@@ -107,5 +107,5 @@ training/
 ├── 13B_data_preprocessing/    AI-Hub 4종 통합 로더
 ├── 13B_train_code/       TowerInstruct-13B QLoRA 학습
 ├── train_7b_lora.py      7B LoRA 학습
-└── eval/                 YOLO mAP · 번역 BLEU/BERTScore + 검증 산출물
+└── eval/                 YOLO mAP · 번역 BERTScore + 검증 산출물
 ```
